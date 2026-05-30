@@ -154,20 +154,48 @@
           { headers: { 'Authorization': 'Bearer ' + token } }
         );
         const data = await res.json();
-        const name = data?.items?.[0]?.snippet?.title;
-        console.log('[CastMyPhotos] YouTube signed in as:', name || 'unknown');
-
-        // Rebuild the IFrame player so it picks up the authenticated session
-        if (ytPlayer && ytReady) {
-          const currentVideo = pendingPlay;
-          ytPlayer.destroy();
-          ytReady = false;
-          ytPlayer = null;
-          initYTPlayer(currentVideo);
-        }
+        console.log('[CastMyPhotos] YouTube API auth:', data?.items?.[0]?.snippet?.title || 'unknown');
       } catch (e) {
         console.error('[CastMyPhotos] YouTube auth error:', e);
       }
+    }
+
+    // Device Code Flow token – uses OAuthLogin to establish real YouTube browser session
+    async function applyYouTubePremiumToken(token, clientId) {
+      if (!token) return;
+      googleToken = token;
+      console.log('[CastMyPhotos] Applying YouTube Premium token via OAuthLogin...');
+
+      try {
+        // OAuthLogin endpoint converts an OAuth token to a browser session cookie
+        const loginUrl = `https://accounts.google.com/accounts/OAuthLogin` +
+          `?source=profiles&issuedTo=${encodeURIComponent(clientId)}&token=${encodeURIComponent(token)}`;
+
+        // Load in an invisible iframe to set the session cookies
+        await loadInFrame(loginUrl, 4000);
+
+        // Give cookies a moment to propagate, then rebuild player
+        await new Promise(r => setTimeout(r, 1000));
+        console.log('[CastMyPhotos] OAuthLogin done – rebuilding YouTube player with Premium session');
+
+        const saved = pendingPlay;
+        if (ytPlayer) { ytPlayer.destroy(); ytReady = false; ytPlayer = null; }
+        initYTPlayer(saved?.id || null);
+      } catch (e) {
+        console.error('[CastMyPhotos] Premium auth error:', e);
+      }
+    }
+
+    function loadInFrame(url, timeoutMs) {
+      return new Promise(resolve => {
+        const f = document.createElement('iframe');
+        f.style.cssText = 'position:fixed;width:1px;height:1px;left:-9999px;top:-9999px;opacity:0;';
+        f.src = url;
+        f.onload = resolve;
+        setTimeout(resolve, timeoutMs);
+        document.body.appendChild(f);
+        setTimeout(() => { try { document.body.removeChild(f); } catch(_){} }, timeoutMs + 500);
+      });
     }
 
     function initYTPlayer(autoPlayId) {
@@ -265,6 +293,9 @@
         switch (data.action) {
           case 'auth':
             applyGoogleAuth(data.token);
+            break;
+          case 'yt_premium_auth':
+            applyYouTubePremiumToken(data.token, data.clientId);
             break;
           case 'preload':
             preloadImage(data.url);
