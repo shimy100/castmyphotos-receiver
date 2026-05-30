@@ -182,7 +182,15 @@
           onReady: () => {
             ytReady = true;
             if (autoPlayId) { ytPlayer.loadVideoById(autoPlayId); autoPlayId = null; }
-            else if (pendingPlay) { ytPlayer.loadVideoById(pendingPlay); pendingPlay = null; }
+            else if (pendingPlay) {
+              if (pendingPlay.type === 'playlist') {
+                ytPlayer.loadPlaylist({ list: pendingPlay.id, listType: 'playlist', index: 0 });
+                ytPlayer.setLoop(true);
+              } else {
+                ytPlayer.loadVideoById(pendingPlay.id || pendingPlay);
+              }
+              pendingPlay = null;
+            }
           },
           onStateChange: e => {
             if (e.data === YT.PlayerState.ENDED) {
@@ -205,20 +213,31 @@
       initYTPlayer(null);
     };
 
+    function showMusicBar(title) {
+      if (!title) return;
+      musicTitle.textContent = title;
+      musicBar.classList.add('visible');
+      clearTimeout(musicBarTimer);
+      musicBarTimer = setTimeout(() => musicBar.classList.remove('visible'), 5000);
+    }
+
     function playMusic(videoId, title) {
       if (ytReady && ytPlayer) {
         ytPlayer.loadVideoById(videoId);
       } else {
-        pendingPlay = videoId;
+        pendingPlay = { type: 'video', id: videoId };
       }
+      showMusicBar(title);
+    }
 
-      // Show music bar briefly
-      if (title) {
-        musicTitle.textContent = title;
-        musicBar.classList.add('visible');
-        clearTimeout(musicBarTimer);
-        musicBarTimer = setTimeout(() => musicBar.classList.remove('visible'), 5000);
+    function playPlaylist(playlistId, title) {
+      if (ytReady && ytPlayer) {
+        ytPlayer.loadPlaylist({ list: playlistId, listType: 'playlist', index: 0 });
+        ytPlayer.setLoop(true);
+      } else {
+        pendingPlay = { type: 'playlist', id: playlistId };
       }
+      showMusicBar('▶ ' + (title || 'Playlist'));
     }
 
     function stopMusic() {
@@ -252,6 +271,9 @@
             break;
           case 'play_music':
             playMusic(data.videoId, data.title);
+            break;
+          case 'play_playlist':
+            playPlaylist(data.playlistId, data.title);
             break;
           case 'stop_music':
             stopMusic();
