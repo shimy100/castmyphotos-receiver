@@ -173,16 +173,13 @@
         await loadInFrame(loginUrl, 4000);
         console.log('[CastMyPhotos] OAuthLogin iframe done');
 
-        // Strategy 2: Load YouTube TV to warm up YouTube.com session cookies
-        // The Chromecast is signed in to Google – this activates those cookies in receiver context
-        await loadInFrame('https://www.youtube.com/tv?nomobile=1', 5000);
-        console.log('[CastMyPhotos] YouTube warm-up done');
+        // Strategy 2: Load YouTube Music to warm up music.youtube.com session cookies
+        await loadInFrame('https://music.youtube.com', 5000);
+        console.log('[CastMyPhotos] YouTube Music warm-up done');
 
-        // Strategy 3: Load YouTube with auth token via embed param (last resort)
-        await loadInFrame(
-          `https://www.youtube.com/embed/videoseries?auth_token=${encodeURIComponent(token)}`,
-          3000
-        );
+        // Strategy 3: Load YouTube TV (regular)
+        await loadInFrame('https://www.youtube.com/tv?nomobile=1', 4000);
+        console.log('[CastMyPhotos] YouTube TV warm-up done');
 
         // Give cookies time to propagate, then rebuild player fresh
         await new Promise(r => setTimeout(r, 1000));
@@ -214,7 +211,7 @@
         playerVars: {
           autoplay: 0, controls: 0, disablekb: 1,
           fs: 0, rel: 0,
-          origin: window.location.origin
+          origin: 'https://music.youtube.com'
         },
         events: {
           onReady: () => {
