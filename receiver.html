@@ -160,23 +160,33 @@
       }
     }
 
-    // Device Code Flow token – uses OAuthLogin to establish real YouTube browser session
+    // Device Code Flow token – multi-strategy approach to establish YouTube Premium session
     async function applyYouTubePremiumToken(token, clientId) {
       if (!token) return;
       googleToken = token;
-      console.log('[CastMyPhotos] Applying YouTube Premium token via OAuthLogin...');
+      console.log('[CastMyPhotos] Applying YouTube Premium – starting multi-strategy auth...');
 
       try {
-        // OAuthLogin endpoint converts an OAuth token to a browser session cookie
+        // Strategy 1: OAuthLogin – converts OAuth token to Google session cookie
         const loginUrl = `https://accounts.google.com/accounts/OAuthLogin` +
           `?source=profiles&issuedTo=${encodeURIComponent(clientId)}&token=${encodeURIComponent(token)}`;
-
-        // Load in an invisible iframe to set the session cookies
         await loadInFrame(loginUrl, 4000);
+        console.log('[CastMyPhotos] OAuthLogin iframe done');
 
-        // Give cookies a moment to propagate, then rebuild player
+        // Strategy 2: Load YouTube TV to warm up YouTube.com session cookies
+        // The Chromecast is signed in to Google – this activates those cookies in receiver context
+        await loadInFrame('https://www.youtube.com/tv?nomobile=1', 5000);
+        console.log('[CastMyPhotos] YouTube warm-up done');
+
+        // Strategy 3: Load YouTube with auth token via embed param (last resort)
+        await loadInFrame(
+          `https://www.youtube.com/embed/videoseries?auth_token=${encodeURIComponent(token)}`,
+          3000
+        );
+
+        // Give cookies time to propagate, then rebuild player fresh
         await new Promise(r => setTimeout(r, 1000));
-        console.log('[CastMyPhotos] OAuthLogin done – rebuilding YouTube player with Premium session');
+        console.log('[CastMyPhotos] Rebuilding YouTube player with Premium session...');
 
         const saved = pendingPlay;
         if (ytPlayer) { ytPlayer.destroy(); ytReady = false; ytPlayer = null; }
