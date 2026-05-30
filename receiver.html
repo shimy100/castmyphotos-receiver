@@ -55,13 +55,14 @@
     #music-title { font-size: 20px; font-weight: 500; }
     #music-icon  { display: inline-block; margin-right: 8px; }
 
-    /* Tiny YouTube player – stays "visible" per ToS but effectively invisible */
+    /* YouTube player – small but "visible" per ToS, hidden in corner */
     #yt-player {
       position: fixed;
-      bottom: 2px; right: 2px;
-      width: 2px; height: 2px;
+      bottom: 4px; right: 4px;
+      width: 240px; height: 135px;
       opacity: 0.01;
       pointer-events: none;
+      z-index: 0;
     }
   </style>
 </head>
@@ -139,6 +140,59 @@
     let ytPlayer    = null;
     let ytReady     = false;
     let pendingPlay = null;
+    let googleToken = null;
+
+    // ─── Google auth: prime YouTube session with user's OAuth token ───────────
+    // Sending an authenticated request to YouTube establishes the session context
+    // in the Cast receiver's Chrome browser, allowing Premium to be recognized.
+    async function applyGoogleAuth(token) {
+      if (!token) return;
+      googleToken = token;
+      try {
+        const res = await fetch(
+          'https://www.googleapis.com/youtube/v3/channels?part=snippet&mine=true&maxResults=1',
+          { headers: { 'Authorization': 'Bearer ' + token } }
+        );
+        const data = await res.json();
+        const name = data?.items?.[0]?.snippet?.title;
+        console.log('[CastMyPhotos] YouTube signed in as:', name || 'unknown');
+
+        // Rebuild the IFrame player so it picks up the authenticated session
+        if (ytPlayer && ytReady) {
+          const currentVideo = pendingPlay;
+          ytPlayer.destroy();
+          ytReady = false;
+          ytPlayer = null;
+          initYTPlayer(currentVideo);
+        }
+      } catch (e) {
+        console.error('[CastMyPhotos] YouTube auth error:', e);
+      }
+    }
+
+    function initYTPlayer(autoPlayId) {
+      ytPlayer = new YT.Player('yt-player', {
+        width: '240', height: '135',
+        playerVars: {
+          autoplay: 0, controls: 0, disablekb: 1,
+          fs: 0, rel: 0,
+          origin: window.location.origin
+        },
+        events: {
+          onReady: () => {
+            ytReady = true;
+            if (autoPlayId) { ytPlayer.loadVideoById(autoPlayId); autoPlayId = null; }
+            else if (pendingPlay) { ytPlayer.loadVideoById(pendingPlay); pendingPlay = null; }
+          },
+          onStateChange: e => {
+            if (e.data === YT.PlayerState.ENDED) {
+              ytPlayer.seekTo(0);
+              ytPlayer.playVideo();
+            }
+          }
+        }
+      });
+    }
 
     // Dynamically load YouTube IFrame API
     (function loadYTApi() {
@@ -148,26 +202,7 @@
     })();
 
     window.onYouTubeIframeAPIReady = function () {
-      ytPlayer = new YT.Player('yt-player', {
-        width: '2', height: '2',
-        playerVars: { autoplay: 0, controls: 0, disablekb: 1, fs: 0, rel: 0 },
-        events: {
-          onReady: () => {
-            ytReady = true;
-            if (pendingPlay) {
-              ytPlayer.loadVideoById(pendingPlay);
-              pendingPlay = null;
-            }
-          },
-          onStateChange: e => {
-            // Loop: when video ends, replay from start
-            if (e.data === YT.PlayerState.ENDED) {
-              ytPlayer.seekTo(0);
-              ytPlayer.playVideo();
-            }
-          }
-        }
-      });
+      initYTPlayer(null);
     };
 
     function playMusic(videoId, title) {
@@ -209,6 +244,9 @@
           ? JSON.parse(event.data) : event.data;
 
         switch (data.action) {
+          case 'auth':
+            applyGoogleAuth(data.token);
+            break;
           case 'preload':
             preloadImage(data.url);
             break;
