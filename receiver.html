@@ -339,14 +339,24 @@
     }
 
     function sendIframeTestResult(success, reason) {
-      try {
-        const castCtx = cast.framework.CastReceiverContext.getInstance();
-        castCtx.sendCustomMessage(NS, undefined,
-          JSON.stringify({ action: 'iframe_test_result', success, reason })
-        );
-      } catch (e) {
-        console.error('[CastMyPhotos] Could not send test result:', e);
-      }
+      // Show result directly on TV screen (no channel needed)
+      const div = document.createElement('div');
+      div.style.cssText = [
+        'position:fixed', 'top:40px', 'left:50%', 'transform:translateX(-50%)',
+        'z-index:9999', 'padding:24px 40px', 'border-radius:16px',
+        'font-family:sans-serif', 'font-size:32px', 'font-weight:bold',
+        'color:#fff', 'text-align:center',
+        success
+          ? 'background:rgba(0,180,0,0.9)'
+          : 'background:rgba(200,0,0,0.9)'
+      ].join(';');
+      div.textContent = success
+        ? `✅ youtube.com/tv נטען! (${reason})`
+        : `❌ youtube.com/tv חסום (${reason})`;
+      document.body.appendChild(div);
+      console.log(`[CastMyPhotos] iframe_test_result: success=${success} reason=${reason}`);
+      // Auto-remove after 30 seconds
+      setTimeout(() => div.remove(), 30000);
     }
 
     function loadYoutubeTv(screenId) {
