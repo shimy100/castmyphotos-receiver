@@ -84,13 +84,11 @@
   <!-- Tiny YouTube iframe player -->
   <div id="yt-player"></div>
 
-  <!-- youtube.com/tv iframe – uses TV's Premium session for ad-free audio -->
-  <!-- DEBUG: opacity:0.3 to see if embed is loading. Set to 0.001 in production -->
+  <!-- youtube.com/tv iframe – kept for future use -->
   <iframe id="yt-tv-frame"
       src="about:blank"
-      allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
-      allowfullscreen
-      style="position:fixed;bottom:0;left:0;width:100%;height:100%;opacity:0.3;z-index:1;border:none;pointer-events:none;">
+      allow="autoplay; encrypted-media"
+      style="position:fixed;width:1px;height:1px;left:-9999px;opacity:0;border:none;pointer-events:none;">
   </iframe>
 
   <!-- Cast Application Framework receiver SDK -->
@@ -403,6 +401,28 @@
       showMusicBar(title || '▶ YouTube Premium');
     }
 
+    // ─── Invidious ad-free playback ──────────────────────────────────────────
+
+    function playInvidiousVideo(videoId, title, base) {
+      if (ytPlayer && ytReady) { try { ytPlayer.stopVideo(); } catch(_) {} }
+      const host = (base || 'https://yewtu.be').replace(/\/$/, '');
+      // listen=1 = audio-only mode; mute=0 = not muted; autoplay=1
+      const url = `${host}/embed/${encodeURIComponent(videoId)}?autoplay=1&listen=1&loop=1&mute=0&rel=0`;
+      console.log('[CastMyPhotos] Invidious video:', url);
+      ytTvFrame.src = url;
+      showMusicBar(title || '▶ ' + videoId);
+    }
+
+    function playInvidiousPlaylist(firstVideoId, playlistId, title, base) {
+      if (ytPlayer && ytReady) { try { ytPlayer.stopVideo(); } catch(_) {} }
+      const host = (base || 'https://yewtu.be').replace(/\/$/, '');
+      // first video + list context = Invidious plays the full playlist
+      const url = `${host}/embed/${encodeURIComponent(firstVideoId)}?list=${encodeURIComponent(playlistId)}&autoplay=1&listen=1&mute=0&rel=0`;
+      console.log('[CastMyPhotos] Invidious playlist:', url);
+      ytTvFrame.src = url;
+      showMusicBar(title ? `▶ ${title}` : '▶ Playlist');
+    }
+
     function stopYtTv() {
       ytTvFrame.src = 'about:blank';
       musicBar.classList.remove('visible');
@@ -442,22 +462,19 @@
           case 'preload':
             preloadImage(data.url);
             break;
+          case 'play_invidious_video':
+            playInvidiousVideo(data.videoId, data.title, data.invidiousBase);
+            break;
+          case 'play_invidious_playlist':
+            playInvidiousPlaylist(data.firstVideoId, data.playlistId, data.title, data.invidiousBase);
+            break;
           case 'play_music':
-            if (ytTvReady) {
-              playYtTvVideo(data.videoId, data.title);  // Use Premium path
-            } else {
-              playMusic(data.videoId, data.title);       // Fallback IFrame
-            }
+            playMusic(data.videoId, data.title);
             break;
           case 'play_playlist':
-            if (ytTvReady) {
-              playYtTvPlaylist(data.playlistId, data.title);  // Use Premium path
-            } else {
-              playPlaylist(data.playlistId, data.title);       // Fallback IFrame
-            }
+            playPlaylist(data.playlistId, data.title);
             break;
           case 'stop_music':
-            stopYtTv();
             stopMusic();
             break;
           case 'pause_music':
