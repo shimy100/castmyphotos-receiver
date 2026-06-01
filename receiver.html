@@ -84,11 +84,12 @@
   <!-- Tiny YouTube iframe player -->
   <div id="yt-player"></div>
 
-  <!-- Auxiliary iframe (kept for future experiments) -->
+  <!-- Invidious/embed iframe – visible (z-index:1) so Chrome allows unmuted autoplay,
+       but covered by photo slides (z-index:2) so user only sees photos -->
   <iframe id="yt-tv-frame"
       src="about:blank"
-      allow="autoplay; encrypted-media"
-      style="position:fixed;width:1px;height:1px;left:-9999px;opacity:0;border:none;pointer-events:none;">
+      allow="autoplay; encrypted-media; fullscreen"
+      style="position:fixed;inset:0;width:100%;height:100%;z-index:1;border:none;pointer-events:none;background:#000;">
   </iframe>
 
   <!-- Cast Application Framework receiver SDK -->
