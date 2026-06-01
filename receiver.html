@@ -84,11 +84,11 @@
   <!-- Tiny YouTube iframe player -->
   <div id="yt-player"></div>
 
-  <!-- Invidious/YouTube embed iframe – DEBUG: opacity:0.4 to verify loading -->
+  <!-- Auxiliary iframe (kept for future experiments) -->
   <iframe id="yt-tv-frame"
       src="about:blank"
-      allow="autoplay; encrypted-media; fullscreen"
-      style="position:fixed;bottom:0;right:0;width:320px;height:180px;opacity:0.4;z-index:5;border:2px solid #0f0;pointer-events:none;">
+      allow="autoplay; encrypted-media"
+      style="position:fixed;width:1px;height:1px;left:-9999px;opacity:0;border:none;pointer-events:none;">
   </iframe>
 
   <!-- Cast Application Framework receiver SDK -->
@@ -473,8 +473,8 @@
     function playInvidiousVideo(videoId, title, base) {
       if (ytPlayer && ytReady) { try { ytPlayer.stopVideo(); } catch(_) {} }
       const host = (base || 'https://yewtu.be').replace(/\/$/, '');
-      // Regular video embed (no listen=1), muted for autoplay
-      const url = `${host}/embed/${encodeURIComponent(videoId)}?autoplay=1&mute=1&loop=1`;
+      // Cast receiver allows unmuted autoplay – no mute needed
+      const url = `${host}/embed/${encodeURIComponent(videoId)}?autoplay=1&loop=1`;
       console.log('[CastMyPhotos] Invidious video URL:', url);
       showDebugUrl(url);
       attachIframeDebugListeners(url);
@@ -489,8 +489,8 @@
     function playInvidiousPlaylist(firstVideoId, playlistId, title, base) {
       if (ytPlayer && ytReady) { try { ytPlayer.stopVideo(); } catch(_) {} }
       const host = (base || 'https://yewtu.be').replace(/\/$/, '');
-      // Regular video embed (no listen=1), muted for autoplay, with playlist
-      const url = `${host}/embed/${encodeURIComponent(firstVideoId)}?list=${encodeURIComponent(playlistId)}&autoplay=1&mute=1`;
+      // Cast receiver allows unmuted autoplay – no mute needed
+      const url = `${host}/embed/${encodeURIComponent(firstVideoId)}?list=${encodeURIComponent(playlistId)}&autoplay=1`;
       console.log('[CastMyPhotos] Invidious playlist URL:', url);
       showDebugUrl(url);
       attachIframeDebugListeners(url);
