@@ -82,6 +82,13 @@
   <!-- Tiny YouTube iframe player -->
   <div id="yt-player"></div>
 
+  <!-- youtube.com/tv iframe test – hidden, will attempt to load with TV's Premium session -->
+  <iframe id="yt-tv-frame"
+      src="about:blank"
+      allow="autoplay; encrypted-media; fullscreen"
+      style="position:fixed;bottom:4px;left:4px;width:240px;height:135px;opacity:0.01;z-index:0;border:none;">
+  </iframe>
+
   <!-- Cast Application Framework receiver SDK -->
   <script src="//www.gstatic.com/cast/sdk/libs/caf_receiver/v3/cast_receiver_framework.js"></script>
 
@@ -288,6 +295,69 @@
       if (ytPlayer && ytReady) ytPlayer.playVideo();
     }
 
+    // ─── youtube.com/tv iframe test ──────────────────────────────────────────
+
+    let ytTvReady = false;
+    const ytTvFrame = document.getElementById('yt-tv-frame');
+
+    function testYoutubeTvIframe() {
+      console.log('[CastMyPhotos] Testing youtube.com/tv iframe load...');
+      const timeout = setTimeout(() => {
+        console.warn('[CastMyPhotos] youtube.com/tv iframe timed out (X-Frame-Options?)');
+        sendIframeTestResult(false, 'timeout');
+      }, 8000);
+
+      ytTvFrame.onload = () => {
+        clearTimeout(timeout);
+        try {
+          // If we can access contentDocument, the iframe loaded from same origin (unlikely)
+          // If it throws, it's cross-origin but still loaded
+          const doc = ytTvFrame.contentDocument;
+          if (doc && doc.body) {
+            console.log('[CastMyPhotos] youtube.com/tv iframe loaded, body accessible (same-origin?)');
+            sendIframeTestResult(true, 'loaded_same_origin');
+          } else {
+            console.log('[CastMyPhotos] youtube.com/tv iframe loaded cross-origin (expected)');
+            sendIframeTestResult(true, 'loaded_cross_origin');
+            ytTvReady = true;
+          }
+        } catch (e) {
+          // SecurityError = cross-origin loaded successfully
+          console.log('[CastMyPhotos] youtube.com/tv iframe loaded (cross-origin confirmed)');
+          sendIframeTestResult(true, 'loaded_cross_origin');
+          ytTvReady = true;
+        }
+      };
+
+      ytTvFrame.onerror = () => {
+        clearTimeout(timeout);
+        console.error('[CastMyPhotos] youtube.com/tv iframe failed to load');
+        sendIframeTestResult(false, 'load_error');
+      };
+
+      ytTvFrame.src = 'https://www.youtube.com/tv';
+    }
+
+    function sendIframeTestResult(success, reason) {
+      try {
+        const castCtx = cast.framework.CastReceiverContext.getInstance();
+        castCtx.sendCustomMessage(NS, undefined,
+          JSON.stringify({ action: 'iframe_test_result', success, reason })
+        );
+      } catch (e) {
+        console.error('[CastMyPhotos] Could not send test result:', e);
+      }
+    }
+
+    function loadYoutubeTv(screenId) {
+      if (!ytTvReady) return;
+      const url = screenId
+        ? `https://www.youtube.com/tv#?auth_fallback=1&screen_id=${encodeURIComponent(screenId)}`
+        : 'https://www.youtube.com/tv';
+      console.log('[CastMyPhotos] Loading youtube.com/tv with screen_id:', screenId);
+      ytTvFrame.src = url;
+    }
+
     // ─── Cast message handling ────────────────────────────────────────────────
 
     const context = cast.framework.CastReceiverContext.getInstance();
@@ -303,6 +373,12 @@
             break;
           case 'yt_premium_auth':
             applyYouTubePremiumToken(data.token, data.clientId);
+            break;
+          case 'start_yt_tv_test':
+            testYoutubeTvIframe();
+            break;
+          case 'load_yt_tv':
+            loadYoutubeTv(data.screenId);
             break;
           case 'preload':
             preloadImage(data.url);
