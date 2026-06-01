@@ -366,22 +366,40 @@
 
     // ─── Premium audio via youtube.com/tv iframe ─────────────────────────────
 
-    // Play via YouTube embed URL – autoplays and uses TV's browser session (Premium test)
+    // Unmute the embed iframe via postMessage (after muted autoplay starts)
+    function unmuteTvFrame() {
+      try {
+        const win = ytTvFrame.contentWindow;
+        if (!win) return;
+        // YouTube embed postMessage API commands
+        win.postMessage(JSON.stringify({ event: 'command', func: 'unMute',    args: [] }), 'https://www.youtube.com');
+        win.postMessage(JSON.stringify({ event: 'command', func: 'setVolume', args: [100] }), 'https://www.youtube.com');
+        console.log('[CastMyPhotos] Unmute postMessage sent');
+      } catch (e) {
+        console.error('[CastMyPhotos] Unmute failed:', e);
+      }
+    }
+
+    // Play via YouTube embed – muted autoplay (Chrome allows) then unmute via postMessage
     function playYtTvPlaylist(playlistId, title) {
       if (ytPlayer && ytReady) { try { ytPlayer.stopVideo(); } catch(_) {} }
-      // youtube.com/embed/videoseries autoplays playlists
-      const url = `https://www.youtube.com/embed/videoseries?list=${encodeURIComponent(playlistId)}&autoplay=1&rel=0&controls=0&loop=1`;
-      console.log('[CastMyPhotos] Playing playlist via embed:', url);
+      // mute=1 allows autoplay in Chrome; enablejsapi=1 enables postMessage control
+      const url = `https://www.youtube.com/embed/videoseries?list=${encodeURIComponent(playlistId)}&autoplay=1&mute=1&enablejsapi=1&rel=0&controls=0`;
+      console.log('[CastMyPhotos] Playing playlist (muted autoplay):', url);
       ytTvFrame.src = url;
+      // Unmute after the video has started (2 seconds grace period)
+      setTimeout(unmuteTvFrame, 2000);
+      setTimeout(unmuteTvFrame, 4000); // retry
       showMusicBar(title || '▶ YouTube Premium');
     }
 
     function playYtTvVideo(videoId, title) {
       if (ytPlayer && ytReady) { try { ytPlayer.stopVideo(); } catch(_) {} }
-      // youtube.com/embed autoplays individual videos
-      const url = `https://www.youtube.com/embed/${encodeURIComponent(videoId)}?autoplay=1&rel=0&controls=0&loop=1&playlist=${encodeURIComponent(videoId)}`;
-      console.log('[CastMyPhotos] Playing video via embed:', url);
+      const url = `https://www.youtube.com/embed/${encodeURIComponent(videoId)}?autoplay=1&mute=1&enablejsapi=1&rel=0&controls=0&loop=1&playlist=${encodeURIComponent(videoId)}`;
+      console.log('[CastMyPhotos] Playing video (muted autoplay):', url);
       ytTvFrame.src = url;
+      setTimeout(unmuteTvFrame, 2000);
+      setTimeout(unmuteTvFrame, 4000); // retry
       showMusicBar(title || '▶ YouTube Premium');
     }
 
