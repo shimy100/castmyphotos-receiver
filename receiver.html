@@ -300,7 +300,8 @@
 
     // ─── youtube.com/tv iframe test ──────────────────────────────────────────
 
-    let ytTvReady = false;
+    // We confirmed youtube.com/tv loads on this device – enable immediately
+    let ytTvReady = true;
     const ytTvFrame = document.getElementById('yt-tv-frame');
 
     function testYoutubeTvIframe() {
@@ -364,53 +365,21 @@
 
     // ─── Premium audio via youtube.com/tv iframe ─────────────────────────────
 
-    // Build YouTube embed URL – uses TV's session cookies (Premium!) instead of IFrame API
-    function buildEmbedUrl(videoId, playlistId) {
-      const base = 'https://www.youtube.com/embed/';
-      const params = new URLSearchParams({
-        autoplay: '1',
-        loop: '1',
-        controls: '0',
-        rel: '0',
-        fs: '0',
-        disablekb: '1',
-        iv_load_policy: '3',   // hide annotations
-        enablejsapi: '0',       // pure embed, not IFrame API
-      });
-      if (playlistId) {
-        params.set('listType', 'playlist');
-        params.set('list', playlistId);
-        return `${base}videoseries?${params}`;
-      }
-      if (videoId) {
-        params.set('playlist', videoId);  // loop single video
-        return `${base}${videoId}?${params}`;
-      }
-      return null;
-    }
-
+    // Play via youtube.com/tv – confirmed to load with TV's Premium session
     function playYtTvPlaylist(playlistId, title) {
-      if (!ytTvReady) {
-        setTimeout(() => playYtTvPlaylist(playlistId, title), 500);
-        return;
-      }
       if (ytPlayer && ytReady) { try { ytPlayer.stopVideo(); } catch(_) {} }
-      const url = buildEmbedUrl(null, playlistId);
-      if (!url) return;
-      console.log('[CastMyPhotos] Playing Premium playlist via embed:', url);
+      // youtube.com/tv with list param: loads the playlist and auto-plays
+      const url = `https://www.youtube.com/tv?list=${encodeURIComponent(playlistId)}`;
+      console.log('[CastMyPhotos] Playing Premium playlist via youtube.com/tv:', url);
       ytTvFrame.src = url;
       showMusicBar(title || '▶ YouTube Music Premium');
     }
 
     function playYtTvVideo(videoId, title) {
-      if (!ytTvReady) {
-        setTimeout(() => playYtTvVideo(videoId, title), 500);
-        return;
-      }
       if (ytPlayer && ytReady) { try { ytPlayer.stopVideo(); } catch(_) {} }
-      const url = buildEmbedUrl(videoId, null);
-      if (!url) return;
-      console.log('[CastMyPhotos] Playing Premium video via embed:', url);
+      // youtube.com/tv with v param: loads and auto-plays the video
+      const url = `https://www.youtube.com/tv?v=${encodeURIComponent(videoId)}`;
+      console.log('[CastMyPhotos] Playing Premium video via youtube.com/tv:', url);
       ytTvFrame.src = url;
       showMusicBar(title || '▶ YouTube Music Premium');
     }
