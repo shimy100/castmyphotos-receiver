@@ -7,9 +7,9 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { width: 100vw; height: 100vh; background: #000; overflow: hidden; }
 
-    /* Photo slides – three buffers for seamless crossfade */
+    /* Photo slides – three buffers for seamless crossfade, above youtube.com/tv iframe */
     .slide {
-      position: absolute;
+      position: fixed;
       inset: 0;
       background-size: cover;
       background-position: center;
@@ -17,6 +17,7 @@
       opacity: 0;
       transition: opacity 1.4s cubic-bezier(0.4, 0, 0.2, 1);
       will-change: opacity, transform;
+      z-index: 2;
     }
     .slide.visible { opacity: 1; }
 
@@ -38,7 +39,7 @@
     .kb2 { animation: kb2 var(--dur, 7s) ease-in-out forwards; }
     .kb3 { animation: kb3 var(--dur, 7s) ease-in-out forwards; }
 
-    /* Music info overlay */
+    /* Music info overlay – above photos */
     #music-bar {
       position: fixed;
       bottom: 0; left: 0; right: 0;
@@ -50,19 +51,20 @@
       opacity: 0;
       transition: opacity 0.5s;
       pointer-events: none;
+      z-index: 10;
     }
     #music-bar.visible { opacity: 1; }
     #music-title { font-size: 20px; font-weight: 500; }
     #music-icon  { display: inline-block; margin-right: 8px; }
 
-    /* YouTube player – small but "visible" per ToS, hidden in corner */
+    /* IFrame API fallback player */
     #yt-player {
       position: fixed;
       bottom: 4px; right: 4px;
-      width: 240px; height: 135px;
+      width: 1px; height: 1px;
       opacity: 0.01;
       pointer-events: none;
-      z-index: 0;
+      z-index: 3;
     }
   </style>
 </head>
@@ -82,11 +84,12 @@
   <!-- Tiny YouTube iframe player -->
   <div id="yt-player"></div>
 
-  <!-- youtube.com/tv iframe test – hidden, will attempt to load with TV's Premium session -->
+  <!-- youtube.com/tv iframe – uses TV's Premium session for ad-free audio -->
   <iframe id="yt-tv-frame"
       src="about:blank"
-      allow="autoplay; encrypted-media; fullscreen"
-      style="position:fixed;bottom:4px;left:4px;width:240px;height:135px;opacity:0.01;z-index:0;border:none;">
+      allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
+      allowfullscreen
+      style="position:fixed;bottom:0;left:0;width:100%;height:100%;opacity:0.001;z-index:1;border:none;pointer-events:none;">
   </iframe>
 
   <!-- Cast Application Framework receiver SDK -->
@@ -359,6 +362,40 @@
       setTimeout(() => div.remove(), 30000);
     }
 
+    // ─── Premium audio via youtube.com/tv iframe ─────────────────────────────
+
+    function playYtTvPlaylist(playlistId, title) {
+      if (!ytTvReady) {
+        console.warn('[CastMyPhotos] youtube.com/tv not ready yet, waiting...');
+        setTimeout(() => playYtTvPlaylist(playlistId, title), 1000);
+        return;
+      }
+      // Stop IFrame API player (we'll use youtube.com/tv instead)
+      if (ytPlayer && ytReady) { try { ytPlayer.stopVideo(); } catch(_) {} }
+
+      const url = `https://www.youtube.com/tv#?list=${encodeURIComponent(playlistId)}&autoplay=1`;
+      console.log('[CastMyPhotos] Playing Premium playlist via youtube.com/tv:', playlistId);
+      ytTvFrame.src = url;
+      showMusicBar(title || '▶ YouTube Music Premium');
+    }
+
+    function playYtTvVideo(videoId, title) {
+      if (!ytTvReady) {
+        setTimeout(() => playYtTvVideo(videoId, title), 1000);
+        return;
+      }
+      if (ytPlayer && ytReady) { try { ytPlayer.stopVideo(); } catch(_) {} }
+      const url = `https://www.youtube.com/tv#?v=${encodeURIComponent(videoId)}&autoplay=1`;
+      console.log('[CastMyPhotos] Playing Premium video via youtube.com/tv:', videoId);
+      ytTvFrame.src = url;
+      showMusicBar(title || '▶ YouTube Music Premium');
+    }
+
+    function stopYtTv() {
+      ytTvFrame.src = 'about:blank';
+      musicBar.classList.remove('visible');
+    }
+
     function loadYoutubeTv(screenId) {
       if (!ytTvReady) return;
       const url = screenId
@@ -394,12 +431,21 @@
             preloadImage(data.url);
             break;
           case 'play_music':
-            playMusic(data.videoId, data.title);
+            if (ytTvReady) {
+              playYtTvVideo(data.videoId, data.title);  // Use Premium path
+            } else {
+              playMusic(data.videoId, data.title);       // Fallback IFrame
+            }
             break;
           case 'play_playlist':
-            playPlaylist(data.playlistId, data.title);
+            if (ytTvReady) {
+              playYtTvPlaylist(data.playlistId, data.title);  // Use Premium path
+            } else {
+              playPlaylist(data.playlistId, data.title);       // Fallback IFrame
+            }
             break;
           case 'stop_music':
+            stopYtTv();
             stopMusic();
             break;
           case 'pause_music':
