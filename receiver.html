@@ -474,10 +474,11 @@
     function playInvidiousVideo(videoId, title, base) {
       if (ytPlayer && ytReady) { try { ytPlayer.stopVideo(); } catch(_) {} }
       const host = (base || 'https://yewtu.be').replace(/\/$/, '');
-      // Cast receiver allows unmuted autoplay – no mute needed
       const url = `${host}/embed/${encodeURIComponent(videoId)}?autoplay=1&loop=1`;
       console.log('[CastMyPhotos] Invidious video URL:', url);
       showDebugUrl(url);
+      // Bring iframe above photos so Chrome allows unmuted autoplay and we can see it
+      ytTvFrame.style.zIndex = '4';
       attachIframeDebugListeners(url);
       ytTvFrame.src = url;
       // Unmute after the video starts
@@ -490,10 +491,11 @@
     function playInvidiousPlaylist(firstVideoId, playlistId, title, base) {
       if (ytPlayer && ytReady) { try { ytPlayer.stopVideo(); } catch(_) {} }
       const host = (base || 'https://yewtu.be').replace(/\/$/, '');
-      // Cast receiver allows unmuted autoplay – no mute needed
       const url = `${host}/embed/${encodeURIComponent(firstVideoId)}?list=${encodeURIComponent(playlistId)}&autoplay=1`;
       console.log('[CastMyPhotos] Invidious playlist URL:', url);
       showDebugUrl(url);
+      // Bring iframe above photos so Chrome allows unmuted autoplay and we can see it
+      ytTvFrame.style.zIndex = '4';
       attachIframeDebugListeners(url);
       ytTvFrame.src = url;
       setTimeout(unmuteInvidious, 2000);
@@ -504,6 +506,7 @@
 
     function stopYtTv() {
       ytTvFrame.src = 'about:blank';
+      ytTvFrame.style.zIndex = '1';  // reset below photos
       musicBar.classList.remove('visible');
     }
 
