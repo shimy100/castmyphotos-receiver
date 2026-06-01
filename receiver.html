@@ -403,12 +403,23 @@
 
     // ─── Invidious ad-free playback ──────────────────────────────────────────
 
+    function showDebugUrl(url) {
+      const existing = document.getElementById('debug-url');
+      if (existing) existing.remove();
+      const div = document.createElement('div');
+      div.id = 'debug-url';
+      div.style.cssText = 'position:fixed;top:10px;left:10px;right:10px;z-index:9999;background:rgba(0,0,0,0.8);color:#0f0;font-family:monospace;font-size:14px;padding:8px;border-radius:8px;word-break:break-all;';
+      div.textContent = '🔗 ' + url;
+      document.body.appendChild(div);
+      setTimeout(() => div.remove(), 15000);
+    }
+
     function playInvidiousVideo(videoId, title, base) {
       if (ytPlayer && ytReady) { try { ytPlayer.stopVideo(); } catch(_) {} }
       const host = (base || 'https://yewtu.be').replace(/\/$/, '');
-      // listen=1 = audio-only mode; mute=0 = not muted; autoplay=1
       const url = `${host}/embed/${encodeURIComponent(videoId)}?autoplay=1&listen=1&loop=1&mute=0&rel=0`;
       console.log('[CastMyPhotos] Invidious video:', url);
+      showDebugUrl(url);
       ytTvFrame.src = url;
       showMusicBar(title || '▶ ' + videoId);
     }
@@ -416,9 +427,9 @@
     function playInvidiousPlaylist(firstVideoId, playlistId, title, base) {
       if (ytPlayer && ytReady) { try { ytPlayer.stopVideo(); } catch(_) {} }
       const host = (base || 'https://yewtu.be').replace(/\/$/, '');
-      // first video + list context = Invidious plays the full playlist
       const url = `${host}/embed/${encodeURIComponent(firstVideoId)}?list=${encodeURIComponent(playlistId)}&autoplay=1&listen=1&mute=0&rel=0`;
       console.log('[CastMyPhotos] Invidious playlist:', url);
+      showDebugUrl(url);
       ytTvFrame.src = url;
       showMusicBar(title ? `▶ ${title}` : '▶ Playlist');
     }
