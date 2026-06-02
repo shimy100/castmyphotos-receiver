@@ -478,19 +478,27 @@
       try { ytPlayer.mute(); } catch(_) {}
     }
 
+    // After audio starts, lower iframe behind photos (audio continues playing)
+    function hideInvidiousBehindPhotos(delay) {
+      setTimeout(() => {
+        ytTvFrame.style.zIndex = '1';
+        console.log('[CastMyPhotos] Invidious audio running, iframe hidden behind photos');
+      }, delay);
+    }
+
     function playInvidiousVideo(videoId, title, base) {
       stopIframeApiAudio();
       const host = (base || 'https://invidious.f5.si').replace(/\/$/, '');
       const url = `${host}/embed/${encodeURIComponent(videoId)}?autoplay=1&loop=1`;
       console.log('[CastMyPhotos] Invidious video URL:', url);
       showDebugUrl(url);
+      // Start visible so Chrome allows autoplay, then hide behind photos
       ytTvFrame.style.zIndex = '4';
       attachIframeDebugListeners(url);
       ytTvFrame.src = url;
-      // Unmute after the video starts
       setTimeout(unmuteInvidious, 2000);
       setTimeout(unmuteInvidious, 4000);
-      setTimeout(unmuteInvidious, 6000);
+      hideInvidiousBehindPhotos(5000);  // photos show after 5s
       showMusicBar(title || '▶ ' + videoId);
     }
 
@@ -500,14 +508,15 @@
       const url = `${host}/embed/${encodeURIComponent(firstVideoId)}?list=${encodeURIComponent(playlistId)}&autoplay=1`;
       console.log('[CastMyPhotos] Invidious playlist URL:', url);
       showDebugUrl(url);
-      ytTvFrame.style.zIndex = '4';
-      // Show loading message during potoken initialization
       showOnScreen('⏳ מאתחל Invidious... (5-15 שניות)', '#ff0');
+      // Start visible so Chrome allows autoplay, then hide behind photos
+      ytTvFrame.style.zIndex = '4';
       attachIframeDebugListeners(url);
       ytTvFrame.src = url;
       setTimeout(unmuteInvidious, 2000);
       setTimeout(unmuteInvidious, 4000);
       setTimeout(unmuteInvidious, 6000);
+      hideInvidiousBehindPhotos(8000);  // longer wait for potoken init
       showMusicBar(title ? `▶ ${title}` : '▶ Playlist');
     }
 
