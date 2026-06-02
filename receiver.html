@@ -428,18 +428,15 @@
     }
 
     function attachIframeDebugListeners(url) {
-      // Give Invidious up to 30s for potoken/companion initialization
       const loadTimer = setTimeout(() => {
-        console.warn('[CastMyPhotos] Iframe timed out after 30s:', url);
+        console.warn('[CastMyPhotos] Iframe timed out:', url);
         hideInvidiousBehindPhotos(0);
-      }, 30000);
+      }, 15000);
 
       ytTvFrame.onload = () => {
         clearTimeout(loadTimer);
         console.log('[CastMyPhotos] Iframe loaded:', url);
-        // Wait 20s for potoken companion to initialize before hiding
-        // (audio continues playing even when iframe is behind photos)
-        hideInvidiousBehindPhotos(20000);
+        hideInvidiousBehindPhotos(2000);
       };
 
       ytTvFrame.onerror = () => {
