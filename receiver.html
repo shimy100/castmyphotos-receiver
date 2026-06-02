@@ -600,6 +600,12 @@
           case 'play_invidious_playlist':
             playInvidiousPlaylist(data.firstVideoId, data.playlistId, data.title, data.invidiousBase, data.videoIds);
             break;
+          case 'update_invidious_playlist':
+            if (data.videoIds && data.videoIds.length > 0) {
+              invidiousVideoIds = data.videoIds;
+              console.log('[CastMyPhotos] Playlist updated with', data.videoIds.length, 'tracks');
+            }
+            break;
           case 'play_music':
             playMusic(data.videoId, data.title);
             break;
