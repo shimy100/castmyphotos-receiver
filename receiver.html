@@ -417,31 +417,22 @@
 
     function attachIframeDebugListeners(url) {
       const loadTimer = setTimeout(() => {
-        showOnScreen('⏱ Iframe timeout after 10s – probably blocked', '#f90');
         console.warn('[CastMyPhotos] Iframe timed out:', url);
-      }, 10000);
+        // Even on timeout, hide iframe after 15s so photos show eventually
+        hideInvidiousBehindPhotos(0);
+      }, 15000);
 
       ytTvFrame.onload = () => {
         clearTimeout(loadTimer);
-        try {
-          const doc = ytTvFrame.contentDocument;
-          if (doc && doc.body) {
-            showOnScreen('✅ Iframe loaded SAME-ORIGIN (unexpected)', '#0f0');
-            console.log('[CastMyPhotos] Iframe loaded same-origin');
-          } else {
-            showOnScreen('✅ Iframe loaded cross-origin – checking audio...', '#0f0');
-            console.log('[CastMyPhotos] Iframe loaded cross-origin:', url);
-          }
-        } catch (e) {
-          showOnScreen('✅ Iframe loaded (SecurityError = cross-origin OK)', '#0f0');
-          console.log('[CastMyPhotos] Iframe cross-origin confirmed:', url);
-        }
+        console.log('[CastMyPhotos] Iframe loaded:', url);
+        // Hide after 2s so audio has time to start, then photos take over
+        hideInvidiousBehindPhotos(2000);
       };
 
       ytTvFrame.onerror = () => {
         clearTimeout(loadTimer);
-        showOnScreen('❌ Iframe onerror – blocked or network error', '#f00');
         console.error('[CastMyPhotos] Iframe onerror:', url);
+        hideInvidiousBehindPhotos(0);
       };
     }
 
@@ -497,8 +488,6 @@
       attachIframeDebugListeners(url);
       ytTvFrame.src = url;
       setTimeout(unmuteInvidious, 2000);
-      setTimeout(unmuteInvidious, 4000);
-      hideInvidiousBehindPhotos(5000);  // photos show after 5s
       showMusicBar(title || '▶ ' + videoId);
     }
 
@@ -514,9 +503,6 @@
       attachIframeDebugListeners(url);
       ytTvFrame.src = url;
       setTimeout(unmuteInvidious, 2000);
-      setTimeout(unmuteInvidious, 4000);
-      setTimeout(unmuteInvidious, 6000);
-      hideInvidiousBehindPhotos(8000);  // longer wait for potoken init
       showMusicBar(title ? `▶ ${title}` : '▶ Playlist');
     }
 
