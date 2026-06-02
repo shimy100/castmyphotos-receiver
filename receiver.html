@@ -39,23 +39,31 @@
     .kb2 { animation: kb2 var(--dur, 7s) ease-in-out forwards; }
     .kb3 { animation: kb3 var(--dur, 7s) ease-in-out forwards; }
 
-    /* Music info overlay – above photos */
+    /* Music info overlay – always visible above photos while playing */
     #music-bar {
       position: fixed;
       bottom: 0; left: 0; right: 0;
-      padding: 14px 24px;
-      background: linear-gradient(transparent, rgba(0,0,0,0.7));
+      padding: 18px 28px 22px;
+      background: linear-gradient(transparent, rgba(0,0,0,0.85) 40%);
       color: #fff;
       font-family: 'Google Sans', sans-serif;
       font-size: 22px;
       opacity: 0;
-      transition: opacity 0.5s;
+      transition: opacity 0.8s;
       pointer-events: none;
       z-index: 10;
     }
     #music-bar.visible { opacity: 1; }
-    #music-title { font-size: 20px; font-weight: 500; }
-    #music-icon  { display: inline-block; margin-right: 8px; }
+    #music-title {
+      font-size: 22px;
+      font-weight: 500;
+      text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 90vw;
+    }
+    #music-icon { display: inline-block; margin-right: 10px; }
 
     /* IFrame API fallback player */
     #yt-player {
@@ -263,7 +271,11 @@
       musicTitle.textContent = title;
       musicBar.classList.add('visible');
       clearTimeout(musicBarTimer);
-      musicBarTimer = setTimeout(() => musicBar.classList.remove('visible'), 5000);
+      // Keep bar visible while music plays – cleared only by stopMusic/stopYtTv
+    }
+
+    function updateMusicBar(title) {
+      if (title) musicTitle.textContent = title;
     }
 
     function playMusic(videoId, title) {
