@@ -459,6 +459,37 @@
       setTimeout(() => div.remove(), 20000);
     }
 
+    // ─── Invidious playlist state ─────────────────────────────────────────────
+    let invidiousVideoIds  = [];
+    let invidiousIndex     = 0;
+    let invidiousHost      = 'https://invidious.f5.si';
+    let invidiousListId    = '';
+
+    // Listen for postMessage events from Invidious iframe (video ended = state 0)
+    window.addEventListener('message', event => {
+      try {
+        let data = event.data;
+        if (typeof data === 'string') data = JSON.parse(data);
+        // YouTube IFrame API: info=0 means ENDED
+        if (data?.event === 'onStateChange' && data?.info === 0) {
+          console.log('[CastMyPhotos] Invidious video ended, loading next...');
+          advanceInvidiousPlaylist();
+        }
+      } catch(_) {}
+    });
+
+    function advanceInvidiousPlaylist() {
+      if (invidiousVideoIds.length === 0) return;
+      invidiousIndex = (invidiousIndex + 1) % invidiousVideoIds.length;
+      const nextId = invidiousVideoIds[invidiousIndex];
+      const host   = invidiousHost;
+      const url    = `${host}/embed/${encodeURIComponent(nextId)}?list=${encodeURIComponent(invidiousListId)}&autoplay=1`;
+      console.log('[CastMyPhotos] Next track:', url);
+      ytTvFrame.style.zIndex = '4';  // bring up briefly for autoplay
+      attachIframeDebugListeners(url);
+      ytTvFrame.src = url;
+    }
+
     // Unmute Invidious iframe via postMessage (same API as YouTube embed)
     function unmuteInvidious() {
       try {
@@ -503,14 +534,19 @@
       showMusicBar(title || '▶ ' + videoId);
     }
 
-    function playInvidiousPlaylist(firstVideoId, playlistId, title, base) {
+    function playInvidiousPlaylist(firstVideoId, playlistId, title, base, videoIds) {
       stopIframeApiAudio();
       const host = (base || 'https://invidious.f5.si').replace(/\/$/, '');
+      // Save playlist state for auto-advance
+      invidiousHost     = host;
+      invidiousListId   = playlistId;
+      invidiousVideoIds = videoIds && videoIds.length > 0 ? videoIds : [firstVideoId];
+      invidiousIndex    = 0;
+
       const url = `${host}/embed/${encodeURIComponent(firstVideoId)}?list=${encodeURIComponent(playlistId)}&autoplay=1`;
-      console.log('[CastMyPhotos] Invidious playlist URL:', url);
+      console.log('[CastMyPhotos] Invidious playlist URL:', url, '| total tracks:', invidiousVideoIds.length);
       showDebugUrl(url);
       showOnScreen('⏳ מאתחל Invidious... (5-15 שניות)', '#ff0');
-      // Start visible so Chrome allows autoplay, then hide behind photos
       ytTvFrame.style.zIndex = '4';
       attachIframeDebugListeners(url);
       ytTvFrame.src = url;
@@ -562,7 +598,7 @@
             playInvidiousVideo(data.videoId, data.title, data.invidiousBase);
             break;
           case 'play_invidious_playlist':
-            playInvidiousPlaylist(data.firstVideoId, data.playlistId, data.title, data.invidiousBase);
+            playInvidiousPlaylist(data.firstVideoId, data.playlistId, data.title, data.invidiousBase, data.videoIds);
             break;
           case 'play_music':
             playMusic(data.videoId, data.title);
