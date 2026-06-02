@@ -471,13 +471,19 @@
       } catch (e) { console.error('[CastMyPhotos] Invidious unmute error:', e); }
     }
 
+    function stopIframeApiAudio() {
+      if (!ytPlayer) return;
+      try { ytPlayer.stopVideo(); } catch(_) {}
+      try { ytPlayer.setVolume(0); } catch(_) {}
+      try { ytPlayer.mute(); } catch(_) {}
+    }
+
     function playInvidiousVideo(videoId, title, base) {
-      if (ytPlayer && ytReady) { try { ytPlayer.stopVideo(); } catch(_) {} }
-      const host = (base || 'https://yewtu.be').replace(/\/$/, '');
+      stopIframeApiAudio();
+      const host = (base || 'https://invidious.f5.si').replace(/\/$/, '');
       const url = `${host}/embed/${encodeURIComponent(videoId)}?autoplay=1&loop=1`;
       console.log('[CastMyPhotos] Invidious video URL:', url);
       showDebugUrl(url);
-      // Bring iframe above photos so Chrome allows unmuted autoplay and we can see it
       ytTvFrame.style.zIndex = '4';
       attachIframeDebugListeners(url);
       ytTvFrame.src = url;
@@ -489,13 +495,14 @@
     }
 
     function playInvidiousPlaylist(firstVideoId, playlistId, title, base) {
-      if (ytPlayer && ytReady) { try { ytPlayer.stopVideo(); } catch(_) {} }
-      const host = (base || 'https://yewtu.be').replace(/\/$/, '');
+      stopIframeApiAudio();
+      const host = (base || 'https://invidious.f5.si').replace(/\/$/, '');
       const url = `${host}/embed/${encodeURIComponent(firstVideoId)}?list=${encodeURIComponent(playlistId)}&autoplay=1`;
       console.log('[CastMyPhotos] Invidious playlist URL:', url);
       showDebugUrl(url);
-      // Bring iframe above photos so Chrome allows unmuted autoplay and we can see it
       ytTvFrame.style.zIndex = '4';
+      // Show loading message during potoken initialization
+      showOnScreen('⏳ מאתחל Invidious... (5-15 שניות)', '#ff0');
       attachIframeDebugListeners(url);
       ytTvFrame.src = url;
       setTimeout(unmuteInvidious, 2000);
