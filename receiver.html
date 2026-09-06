@@ -21,18 +21,21 @@
     }
     .slide.visible { opacity: 1; }
 
-    /* Ken Burns variants – alternated so consecutive photos feel different */
+    /* Ken Burns variants – alternated so consecutive photos feel different.
+       Kept subtle on purpose: background-size:cover already crops the photo to fill the
+       screen, so any extra zoom here pushes more of it off-screen on top of that. Previous
+       values (up to 1.10 scale, 2% pan) were cutting off a visibly large part of the photo. */
     @keyframes kb1 {
-      from { transform: scale(1.00) translate( 0%,  0%); }
-      to   { transform: scale(1.10) translate(-2%, -2%); }
+      from { transform: scale(1.000) translate(   0%,    0%); }
+      to   { transform: scale(1.045) translate(-1.0%, -1.0%); }
     }
     @keyframes kb2 {
-      from { transform: scale(1.08) translate( 2%,  1%); }
-      to   { transform: scale(1.00) translate( 0%,  0%); }
+      from { transform: scale(1.045) translate( 1.0%,  0.6%); }
+      to   { transform: scale(1.000) translate(   0%,    0%); }
     }
     @keyframes kb3 {
-      from { transform: scale(1.00) translate( 1%,  2%); }
-      to   { transform: scale(1.10) translate(-1%,  0%); }
+      from { transform: scale(1.000) translate( 0.6%,  1.0%); }
+      to   { transform: scale(1.045) translate(-0.6%,    0%); }
     }
 
     .kb1 { animation: kb1 var(--dur, 7s) ease-in-out forwards; }
