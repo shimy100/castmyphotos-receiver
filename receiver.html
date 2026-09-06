@@ -11,7 +11,11 @@
     .slide {
       position: fixed;
       inset: 0;
-      background-size: cover;
+      /* contain (not cover): shows the whole photo instead of cropping it to fill the screen.
+         Photos whose aspect ratio doesn't match the TV (e.g. portrait phone photos on a 16:9
+         screen) get black bars instead of losing their edges - reducing the Ken Burns zoom
+         alone didn't fix this, because "cover" was already cropping before any zoom was applied. */
+      background-size: contain;
       background-position: center;
       background-repeat: no-repeat;
       opacity: 0;
