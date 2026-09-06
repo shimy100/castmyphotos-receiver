@@ -18,6 +18,10 @@
       background-size: contain;
       background-position: center;
       background-repeat: no-repeat;
+      /* contain only paints the photo itself, leaving the letterbox strips fully transparent -
+         without this, the music video underneath (or the previous photo mid-crossfade) bled
+         through those strips. Solid black opaques them without affecting the photo itself. */
+      background-color: #000;
       opacity: 0;
       transition: opacity 1.4s cubic-bezier(0.4, 0, 0.2, 1);
       will-change: opacity, transform;
